@@ -1,0 +1,86 @@
+# Configuración inicial
+!pip install replicate
+
+import os
+import replicate
+from google.colab import userdata
+
+# Leemos el token desde los "Secrets" de Colab (el nombre del secreto debe ser REPLICATE_API_TOKEN)
+# y lo guardamos en las variables de entorno para que replicate lo encuentre solo
+os.environ["REPLICATE_API_TOKEN"] = userdata.get("REPLICATE_API_TOKEN")
+print("Token cargado correctamente.")
+
+# Paso 1: Configurar el modelo
+modelo = "ibm-granite/granite-3.3-8b-instruct"
+parametros = {
+    "max_tokens": 1024,
+    "temperature": 0.2
+}
+print("Modelo:", modelo)
+print("Parámetros:", parametros)
+
+# Paso 2: Instrucción de referencia (hardcoded)
+# Un prompt fijo: solo sirve para el proyecto DeltaFin
+prompt_fijo = "Escribe un resumen semanal de estado para el proyecto DeltaFin. Incluye el progreso, los bloqueos y los próximos pasos."
+
+print("Prompt estático:")
+print(prompt_fijo)
+
+# replicate.run devuelve el texto en trozos, así que los unimos con join
+salida = replicate.run(
+    modelo,
+    input={"prompt": prompt_fijo, **parametros}
+)
+respuesta_fija = "".join(salida)
+
+print("\nRespuesta del modelo:")
+print(respuesta_fija)
+
+print("\nProblema: si quiero otro proyecto, tengo que reescribir todo el prompt a mano.")
+
+# Paso 3: Crear la plantilla reutilizable
+# Los {marcadores} se sustituirán después por valores reales
+prompt_template = """Escribe un resumen semanal de estado para el proyecto {client_name}.
+
+Periodo: {time_period}
+Progreso: {progress}
+Bloqueos: {blockers}
+Próximos pasos: {next_steps}
+
+Tono: {tone}
+Audiencia: {audience}
+Formato de salida: {output_format}
+"""
+
+print("Plantilla creada (todavía con marcadores):")
+print(prompt_template)
+
+# Paso 4: Probar la plantilla con variables
+# Diccionario con valores ficticios para el proyecto MediTrack
+project_vars = {
+    "client_name": "MediTrack",
+    "time_period": "del 3 al 7 de noviembre de 2026",
+    "progress": "Se completó el módulo de citas y se terminaron las pruebas de la API de pacientes.",
+    "blockers": "Retraso en la aprobación de seguridad del cliente para el entorno de producción.",
+    "next_steps": "Iniciar el módulo de recordatorios y solicitar la reunión de seguridad.",
+    "tone": "profesional y cercano",
+    "audience": "directivos del cliente",
+    "output_format": "lista con viñetas, máximo 150 palabras"
+}
+
+# .format(**diccionario) rellena cada {marcador} con su valor
+prompt_final = prompt_template.format(**project_vars)
+
+print("Prompt generado con las variables:")
+print(prompt_final)
+
+salida = replicate.run(
+    modelo,
+    input={"prompt": prompt_final, **parametros}
+)
+respuesta_plantilla = "".join(salida)
+
+print("\nRespuesta del modelo adaptada a MediTrack:")
+print(respuesta_plantilla)
+
+print("\nAhora basta con cambiar los valores del diccionario para reutilizar la misma plantilla en otro proyecto.")
