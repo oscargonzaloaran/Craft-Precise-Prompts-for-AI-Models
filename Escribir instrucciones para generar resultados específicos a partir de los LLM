@@ -1,0 +1,91 @@
+# Configuración inicial
+!pip install replicate
+
+import os
+import replicate
+from google.colab import userdata
+
+# Leemos el token desde los "Secrets" de Colab (el secreto debe llamarse REPLICATE_API_TOKEN)
+# y lo guardamos en las variables de entorno para que replicate lo encuentre solo
+os.environ["REPLICATE_API_TOKEN"] = userdata.get("REPLICATE_API_TOKEN")
+print("Token cargado correctamente.")
+
+# Paso 1: Configurar el modelo y los datos de entrada sucios
+modelo = "ibm-granite/granite-3.3-8b-instruct"
+parametros = {
+    "max_tokens": 1024,
+    "temperature": 0.2
+}
+
+# Notas "sucias" de una reunión, tal como las apuntaría alguien con prisas
+input_notas = """
+reunión alpha crm upgrade - lunes
+- bug del login ya solucionado, el equipo de QA lo confirmó el jueves
+- fase 2 retrasada ~2 semanas, el módulo de contactos se complicó más de lo previsto
+- faltan datos de prueba para las pruebas UAT, el cliente aún no los envía
+- dependemos de ingeniería de datos para la migración de cuentas antiguas, sin fecha clara
+- migración de usuarios al nuevo servidor terminada
+- pendiente: confirmar con ventas la fecha del lanzamiento, preparar sesión de formación
+"""
+
+print("Modelo:", modelo)
+print("Parámetros:", parametros)
+print("\nNotas de la reunión (entrada sucia):")
+print(input_notas)
+
+# Paso 2: Prompt directo (básico, zero-shot)
+prompt_basico = f"Escribe una actualización semanal del proyecto de 120 palabras basándote en estas notas: {input_notas}"
+
+print("Prompt básico:")
+print(prompt_basico)
+
+# replicate.run devuelve el texto en trozos, así que los unimos con join
+salida = replicate.run(
+    modelo,
+    input={"prompt": prompt_basico, **parametros}
+)
+respuesta_basica = "".join(salida)
+
+print("\nRespuesta del modelo:")
+print(respuesta_basica)
+
+print("\nObservación: esta respuesta suele ser plana, sin estructura clara y poco profesional.")
+
+# Paso 3: Prompt específico de la tarea (estructurado)
+prompt_estructurado = f"Crea una actualización semanal de 120 palabras para los stakeholders internos. Incluye: estado actual, tareas completadas, riesgos y próximos pasos. Basado en esta entrada: {input_notas}"
+
+print("Prompt estructurado:")
+print(prompt_estructurado)
+
+salida = replicate.run(
+    modelo,
+    input={"prompt": prompt_estructurado, **parametros}
+)
+respuesta_estructurada = "".join(salida)
+
+print("\nRespuesta del modelo:")
+print(respuesta_estructurada)
+
+print("\nObservación: ahora hay estructura (secciones claras), pero todavía falta pulir el tono.")
+
+# Paso 4: Prompt avanzado (rol, tono y formato)
+prompt_avanzado = f"""Eres un asistente de informes de proyectos de TI.
+Tarea: Genera una actualización semanal de 120 palabras para stakeholders internos.
+Tono: Conciso y profesional.
+Formato: Usa viñetas para las siguientes secciones: Estado Actual, Tareas Completadas, Riesgos/Problemas, Próximos Pasos.
+Información de entrada: {input_notas}"""
+
+print("Prompt avanzado:")
+print(prompt_avanzado)
+
+salida = replicate.run(
+    modelo,
+    input={"prompt": prompt_avanzado, **parametros}
+)
+respuesta_avanzada = "".join(salida)
+
+print("\nRespuesta final del modelo:")
+print(respuesta_avanzada)
+
+print("\nConclusión: asignar un rol, definir el tono y fijar el formato transforma la calidad del texto.")
+print("Pasamos de un párrafo plano a un informe profesional, ordenado y listo para compartir.")
